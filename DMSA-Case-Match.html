@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#102723">
+<title>DMSA Case Match</title>
+<style>
+:root{color-scheme:dark;--paper:#102723;--panel:#18322d;--line:#416057;--muted:#b5c9c1;--accent:#e8efad;--ink:#f5f8ef}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:1rem/1.55 system-ui,sans-serif}
+main{max-width:1120px;margin:auto;padding:clamp(20px,5vw,60px)}
+header{margin-bottom:28px;position:relative;padding-top:36px}
+.cheat-sheet{position:absolute;top:0;right:0;z-index:2;width:max-content;max-width:min(100%,320px);color:var(--ink)}
+.cheat-sheet summary{width:max-content;margin-left:auto;cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:var(--panel);color:var(--accent);font-size:.85rem;font-weight:700}
+.cheat-sheet summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.cheat-sheet ul{list-style:none;margin:6px 0 0;padding:10px 13px;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 22px #0005;font-size:.85rem}
+.cheat-sheet li+li{margin-top:6px}
+.kicker,.eyebrow{color:var(--accent);font-size:.76rem;letter-spacing:.14em;text-transform:uppercase;font-weight:750}
+h1{font:500 clamp(2.8rem,7vw,5.5rem)/1 Georgia,serif;margin:.15em 0}
+h2{font-size:1.55rem;line-height:1.2;margin:.5em 0}
+p{margin:.6em 0}
+header p,.muted,footer{color:var(--muted)}
+.status{display:flex;justify-content:space-between;gap:12px;font-variant-numeric:tabular-nums}
+progress{width:100%;height:8px;display:block;margin:10px 0 22px;accent-color:var(--accent)}
+.grid{display:grid;grid-template-columns:1.15fr 1fr;gap:20px}
+section,figure{margin:0;padding:clamp(16px,3vw,28px);background:var(--panel);border:1px solid var(--line);border-radius:16px}
+figcaption{margin-bottom:15px;font-weight:700}
+.scan{position:relative;overflow:hidden;background:#fff;border-radius:9px;margin:auto;max-width:530px}
+.scan img{position:absolute;display:block;max-width:none}
+.choices{display:grid;gap:8px;margin:18px 0}
+button{background:#203e37;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font:inherit;font-weight:650;text-align:left;cursor:pointer}
+button:hover:enabled{border-color:var(--accent)}
+button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+button:disabled{cursor:default}
+button.correct{border-color:var(--accent);color:var(--accent)}
+button.incorrect{border-color:#fbbba8;color:#fbbba8}
+.primary{background:var(--accent);color:#192820;border-color:transparent}
+#feedback{border-top:1px solid var(--line);margin:16px 0;padding-top:12px}
+a{color:var(--accent)}
+footer{margin-top:20px;font-size:.82rem}
+[hidden]{display:none!important}
+@media(max-width:720px){.grid{grid-template-columns:1fr}.scan{max-width:400px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <details class="cheat-sheet">
+    <summary>Cheat sheet</summary>
+    <ul>
+      <li><strong>Normal</strong> · Even cortical uptake with no focal defect.</li>
+      <li><strong>Scar</strong> · Persistent low uptake on follow-up, often with cortical thinning or an indented contour.</li>
+      <li><strong>Acute</strong> · Recent febrile UTI with reduced uptake, usually with preserved contour or swelling.</li>
+    </ul>
+  </details>
+  <div class="kicker">Nuclear medicine · Tc-99m DMSA</div>
+  <h1>DMSA Case Match</h1>
+  <p>Read the history and match each renal cortical scan to Normal, Scar, or Acute.</p>
+</header>
+<div class="status"><span id="counter"></span><span id="score"></span></div>
+<progress id="progress" aria-label="Cases answered"></progress>
+<div class="grid" id="game">
+  <figure>
+    <figcaption>Renal cortical scan</figcaption>
+    <div id="scan" class="scan"><img id="image" alt="Tc-99m DMSA renal cortical scan"></div>
+    <p id="image-error" class="muted" hidden>The scan could not load. <button id="retry" type="button">Retry image</button></p>
+    <p id="external-scan" hidden><a id="scan-link" target="_blank" rel="noopener"></a></p>
+  </figure>
+  <section aria-labelledby="case-title">
+    <div class="eyebrow">Patient history</div>
+    <h2 id="case-title" tabindex="-1">What does the scan show?</h2>
+    <p id="story"></p>
+    <div class="choices" aria-label="Choose an interpretation">
+      <button data-answer="Normal">Normal</button>
+      <button data-answer="Scar">Scar</button>
+      <button data-answer="Acute">Acute</button>
+    </div>
+    <div id="feedback" hidden>
+      <div role="status"><strong id="verdict"></strong><p id="reason"></p></div>
+      <a id="source" target="_blank" rel="noopener">View published figure</a>
+    </div>
+    <button id="next" class="primary" hidden>Next case</button>
+  </section>
+</div>
+<section id="summary" hidden>
+  <h2 id="summary-title" tabindex="-1">Round complete</h2><p id="result"></p>
+  <button id="restart" class="primary">Shuffle and play again</button>
+</section>
+<footer>Scan panels cropped from Grierosu et al., <i>Diagnostics</i> (2025), <a href="https://doi.org/10.3390/diagnostics15081025">doi:10.3390/diagnostics15081025</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Additional cropped scans from <a href="https://doi.org/10.3904/kjim.1995.10.1.43">Lee et al. (1995)</a> (<a href="https://creativecommons.org/licenses/by-nc/3.0/">CC BY-NC 3.0</a>) and <a href="https://doi.org/10.1007/s00467-025-06779-1">Kanaan et al. (2025)</a> (CC BY 4.0). Reference <a href="https://doi.org/10.1007/s40336-022-00484-x">SNMMI/EANM DMSA guideline</a>.</footer>
+</main>
+<script>
+const figureRoot = 'https://mdpi-res.com/diagnostics/diagnostics-15-01025/article_deploy/html/images/diagnostics-15-01025-g';
+const leeScan = 'https://cdn.ncbi.nlm.nih.gov/pmc/blobs/953b/4532029/d5d597b0b3bd/kjim-10-1-43-7f1.jpg';
+const springerScan = 'https://media.springernature.com/lw685/springer-static/image/art%3A10.1007%2Fs00467-025-06779-1/MediaObjects/467_2025_6779_Fig1_HTML.png';
+const observerPaper = 'https://www.chp.edu/-/media/chp/departments-and-services/uti/documents/intra-and-interobserver-variability-in-interpretation-of-dmsa-scans.pdf#page=2';
+const discordantPaper = 'https://www.e-cep.org/journal/view.php?spage=212&vol=54&year=2011#f2';
+const cases = [
+  { label: 'Figure 1B', image: figureRoot + '001-550.jpg', crop: [.061,.54,.38,.24,550/561], answer: 'Normal',
+    story: 'A 1-year-old boy with mild left hydronephrosis has a posterior DMSA scan.',
+    reason: 'The spleen flattens the upper left renal contour. Cortical uptake is preserved, consistent with a normal DMSA variant.' },
+  { label: 'Figure 1A', image: leeScan, crop: [.022,.12,.45,.72,753/318], answer: 'Normal',
+    story: 'An adult in a study of suspected renal infection has posterior renal cortical imaging. Classify the DMSA appearance.',
+    reason: 'The two kidneys have preserved uptake without a focal cortical defect. The published scan interpretation is normal.' },
+  { label: 'Figure 2B', external: discordantPaper, answer: 'Normal',
+    story: 'An 8-month-old boy has DMSA imaging during evaluation for a suspected kidney infection. Classify the DMSA scan in panel B.',
+    reason: 'The DMSA appearance was normal in the area of concern. CT showed an inflammatory lesion in the left upper pole, an example of a false-negative DMSA result.' },
+  { label: 'Figure 1B', image: leeScan, crop: [.50,.12,.46,.72,753/318], answer: 'Acute',
+    story: 'A 34-year-old woman presents with right flank pain and tenderness. Ultrasound and intravenous urography were unremarkable.',
+    reason: 'A focal uptake defect at the right upper pole corresponds to the acute infection documented in the study.' },
+  { label: 'Figure 1', external: observerPaper, answer: 'Acute',
+    story: 'A 6-month-old infant undergoes imaging during evaluation of a current urinary tract infection.',
+    reason: 'Reduced left lower-pole uptake with preserved contour and volume supports acute inflammation in this case.' },
+  { label: 'Figure 2', external: observerPaper, answer: 'Acute',
+    story: 'A 10-year-old child undergoes imaging during evaluation of a current urinary tract infection.',
+    reason: 'The left upper pole bulges while the underlying uptake is homogeneous. The authors describe this as an acute inflammatory pattern.' },
+  { label: 'Figure 1a', image: springerScan, crop: [.12,.04,.76,.24,305/720], answer: 'Scar',
+    story: 'A 7-year-old girl has a history of recurrent febrile urinary tract infections. Her last infection was eight months before imaging.',
+    reason: 'Wedge-shaped defects at both poles of the left kidney distort the contour and reduce cortical volume, supporting scarring.' },
+  { figure: '011', panel: 'A', crop: [0.035,0.21,0.39,0.75,2.836], answer: 'Normal',
+    story: 'Review this reference scan of renal cortical uptake. No patient history was provided for this teaching image.',
+    reason: 'Both kidneys show preserved cortical uptake without an obvious focal defect.' },
+  { figure: '007', panel: 'A', crop: [0.07,0.065,0.385,0.25,2367/2682], answer: 'Acute',
+    story: 'A 6-year-old girl undergoes DMSA imaging during a current kidney infection.',
+    reason: 'The published case identifies a focal right upper-pole cortical uptake defect during acute pyelonephritis.' },
+  { figure: '007', panel: 'B', crop: [0.557,0.065,0.39,0.25,2367/2682], answer: 'Scar',
+    story: 'A 9-year-old girl has a history of recurrent urinary tract infections.',
+    reason: 'The published interpretation identifies left renal cortical scars. A chronic defect may appear with lost cortical volume or contour retraction.' },
+  { figure: '007', panel: 'C', crop: [0.07,0.555,0.385,0.25,2367/2682], answer: 'Scar',
+    story: 'A 4-year-old boy has a history of urinary tract infections and vesicoureteral reflux. His left kidney was previously removed.',
+    reason: 'The source identifies scarring in the remaining kidney. The absent kidney reflects the prior nephrectomy.' },
+  { figure: '007', panel: 'D', crop: [0.557,0.555,0.39,0.25,2367/2682], answer: 'Scar',
+    story: 'A 12-year-old boy has recurrent urinary tract infections, reflux on both sides, and grade II right hydronephrosis.',
+    reason: 'The source reports bilateral renal scars and a hypoplastic left kidney. A small kidney and scarring can coexist.' }
+];
+const byId = id => document.getElementById(id);
+const buttons = [...document.querySelectorAll('[data-answer]')];
+let deck, index, correct, answered;
+
+function updateStatus() {
+  byId('counter').textContent = 'Case ' + Math.min(index + 1, deck.length) + ' of ' + deck.length;
+  byId('score').textContent = 'Score ' + correct + ' / ' + (index + Number(answered));
+  byId('progress').value = index + Number(answered);
+}
+
+function loadScan() {
+  const current = deck[index];
+  const img = byId('image');
+  byId('image-error').hidden = true;
+  byId('scan').hidden = Boolean(current.external);
+  byId('external-scan').hidden = !current.external;
+  if (current.external) {
+    img.removeAttribute('src');
+    byId('scan-link').href = current.external;
+    byId('scan-link').textContent = 'Open ' + current.label + ' in the original publication';
+    return;
+  }
+  const [left, top, width, height, ratio] = current.crop;
+  byId('scan').style.aspectRatio = width * ratio / height;
+  img.style.width = 100 / width + '%';
+  img.style.left = -100 * left / width + '%';
+  img.style.top = -100 * top / height + '%';
+  img.src = current.image || figureRoot + current.figure + '.png';
+}
+
+function showCase() {
+  answered = false;
+  byId('story').textContent = deck[index].story;
+  byId('feedback').hidden = true;
+  byId('next').hidden = true;
+  buttons.forEach(button => {
+    button.disabled = false;
+    button.classList.remove('correct', 'incorrect');
+  });
+  updateStatus();
+  loadScan();
+}
+
+function begin(shuffle) {
+  deck = [...cases];
+  if (shuffle) {
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+  }
+  index = 0;
+  correct = 0;
+  byId('progress').max = deck.length;
+  byId('game').hidden = false;
+  byId('summary').hidden = true;
+  showCase();
+}
+
+buttons.forEach(button => button.addEventListener('click', () => {
+  if (answered) return;
+  answered = true;
+  const current = deck[index];
+  const hit = button.dataset.answer === current.answer;
+  if (hit) correct++;
+  for (const choice of buttons) {
+    choice.disabled = true;
+    if (choice.dataset.answer === current.answer) choice.classList.add('correct');
+  }
+  if (!hit) button.classList.add('incorrect');
+  byId('verdict').textContent = (hit ? 'Correct. ' : 'Best match: ') + current.answer;
+  byId('reason').textContent = current.reason;
+  byId('source').href = current.external || current.image || figureRoot + current.figure + '.png';
+  byId('source').textContent = 'View published ' + (current.label || 'Figure ' + Number(current.figure) + current.panel);
+  byId('feedback').hidden = false;
+  byId('next').textContent = index === deck.length - 1 ? 'See results' : 'Next case';
+  byId('next').hidden = false;
+  byId('next').focus();
+  updateStatus();
+}));
+
+byId('next').addEventListener('click', () => {
+  index++;
+  if (index < deck.length) {
+    showCase();
+    byId('case-title').focus();
+    return;
+  }
+  byId('game').hidden = true;
+  byId('summary').hidden = false;
+  byId('result').textContent = 'You matched ' + correct + ' of ' + deck.length + ' scans correctly.';
+  byId('summary-title').focus();
+});
+byId('restart').addEventListener('click', () => {
+  begin(true);
+  byId('case-title').focus();
+});
+byId('image').addEventListener('error', () => { byId('image-error').hidden = false; });
+byId('retry').addEventListener('click', loadScan);
+begin(true);
+</script>
+</body>
+</html>
+
